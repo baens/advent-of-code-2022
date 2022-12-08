@@ -48,14 +48,14 @@ object Walker {
       return
     }
 
-    val (rawSize, name) = line.split(" ")
+    val (rawSize) = line.split(" ")
     val size = rawSize.toInt()
 
     currentLocation.fold("") {
         previous,current ->
-      val path = "$previous/$current".replace("//","/")
-      directories[path] = directories.getOrPut(path) { 0 }+size
-      path
+          val path = "$previous/$current".replace("//","/")
+          directories[path] = directories.getOrPut(path) { 0 }+size
+          path
     }
   }
 }
