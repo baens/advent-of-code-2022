@@ -22,9 +22,11 @@ val monkeys = File("./input")
     Monkey(startingItems.toMutableList(), operation, divisor, trueIndex, falseIndex)
   }
 
-repeat(20) {
+val modulo = monkeys.map { it.divisor }.reduce { acc, item -> acc * item }
+
+repeat(10000) {
   for(monkey in monkeys) {
-    monkey.inspection()
+    monkey.inspection(modulo)
       .forEach { (i, items) ->  monkeys[i].addItems(items) }
   }
 }
@@ -33,19 +35,19 @@ val result = monkeys.map {it.inspectItems}.sortedDescending().take(2).reduce { a
 println(result)
 
 class Monkey(
-  private var heldItems:MutableList<Int>,
-  val operation:(Int)->Int,
-  private val divisor:Int,
+  private var heldItems:MutableList<Long>,
+  val operation:(Long)->Long,
+  val divisor:Long,
   private val trueChoice:Int,
   private val falseChoice:Int
 ) {
 
-  var inspectItems = 0
+  var inspectItems:Long = 0
 
-  fun inspection():Map<Int,List<Int>> {
+  fun inspection(modulo:Long):Map<Int,List<Long>> {
     val passedItems = heldItems.map {
-      val item = operation(it) / 3
-      val nextMonkey = if (item % divisor == 0) trueChoice else falseChoice
+      val item = operation(it) % modulo
+      val nextMonkey = if (item % divisor == 0L) trueChoice else falseChoice
       inspectItems += 1
       nextMonkey to item
     }.groupBy({ it.first }, { it.second })
@@ -55,38 +57,42 @@ class Monkey(
     return passedItems
   }
 
-  fun addItems(items:List<Int>) =heldItems.addAll(items)
+  fun addItems(items:List<Long>) =heldItems.addAll(items)
   override fun toString(): String {
-    return "Monkey(heldItems=$heldItems,divisor=$divisor,true=$trueChoice,false=$falseChoice)"
+    return "Monkey(heldItems=$heldItems,divisor=$divisor,true=$trueChoice,false=$falseChoice,inspections=$inspectItems)"
   }
 }
 
 operator fun <T> List<T>.component6() = this[5]
 
-fun parseStartingItems(raw: String): List<Int> =
-  numberMatcher.findAll(raw).map { it.value.toInt() }.toList()
+fun parseStartingItems(raw: String): List<Long> =
+  numberMatcher.findAll(raw).map { it.value.toLong() }.toList()
 
-fun parseOperation(raw: String): (Int) -> Int {
+fun parseOperation(raw: String): (Long) -> Long {
   val parsed = operationRegex.matchEntire(raw) ?: throw Exception("I can't match operation line [$raw]")
   val (_, operation, rawX) = parsed.groupValues
   return if(rawX == "old") {
     when(operation) {
-      "*" -> {i:Int -> i * i}
-      "+" -> {i:Int -> i + i}
+      "*" -> {i:Long -> i * i}
+      "+" -> {i:Long -> i + i}
       else -> throw Exception("Unknown operation $operation")
     }
   } else {
-    val x = rawX.toInt()
+    val x = rawX.toLong()
     when(operation) {
-      "*" -> {i:Int -> i * x}
-      "+" -> {i:Int -> i + x}
+      "*" -> {i:Long -> i * x}
+      "+" -> {i:Long -> i + x}
       else -> throw Exception("Unknown operation $operation")
     }
   }
 }
 
-fun parseDivisor(raw:String):Int = numberMatcher.find(raw)?.value?.toInt() ?: throw Exception("no match for divisor [$raw]")
+fun parseDivisor(raw:String):Long = numberMatcher.find(raw)?.value?.toLong() ?: throw Exception("no match for divisor [$raw]")
 
 fun parseTrue(raw:String):Int = numberMatcher.find(raw)?.value?.toInt() ?: throw Exception("no match for true [$raw]")
 
 fun parseFalse(raw:String):Int = numberMatcher.find(raw)?.value?.toInt() ?: throw Exception("no match for false [$raw]")
+
+fun gcd(x:Long, y:Long):Long = if (y==0L) x else gcd(y, x % x)
+
+fun Iterable<Long>.lcm(): Long = this.fold(1L) { x, y -> x * (y / gcd(x,y)) }
